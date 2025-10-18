@@ -1,86 +1,138 @@
-/* Custom fonts dan styling dasar */
+/* ========== Fonts & base ========== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+:root{
+  --sidebar-w: 16rem; /* 64 (Tailwind) */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
-    font-family: 'Inter', sans-serif;
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc; /* slate-50 */
 }
+
+/* Card shadow util */
 .container-shadow {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
 }
 
-/* Input Styles */
-input[type="date"], input[type="time"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+/* ===== Form inputs ===== */
+input[type="date"], input[type="time"], select, textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-/* Tombol Aksi (Mengganti @apply dengan styling eksplisit) */
-.icon-button {
-    padding: 0.5rem; /* p-2 */
-    border-radius: 9999px; /* rounded-full */
-    transition: all 150ms ease-in-out; /* transition duration-150 */
-}
-.icon-button:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* hover:shadow-md */
+/* Anti-auto-zoom iOS saat fokus */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"], input[type="time"], select, textarea { font-size: 16px; }
 }
 
-/* Warna Tombol */
-.icon-edit {
-    color: #2563eb; /* text-blue-600 */
-}
-.icon-edit:hover {
-    background-color: #eff6ff; /* hover:bg-blue-100 */
-}
-.icon-delete {
-    color: #dc2626; /* text-red-600 */
-}
-.icon-delete:hover {
-    background-color: #fee2e2; /* hover:bg-red-100 */
-}
-.icon-review {
-    color: #4f46e5; /* text-indigo-600 */
-}
-.icon-review:hover {
-    background-color: #e0e7ff; /* hover:bg-indigo-100 */
-}
-
+/* ===== Icon buttons (ganti @apply) ===== */
+.icon-button { padding: .5rem; border-radius: 9999px; transition: all .15s ease-in-out; }
+.icon-button:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.06); }
+.icon-edit { color: #2563eb; }       .icon-edit:hover { background: #eff6ff; }
+.icon-delete { color: #dc2626; }     .icon-delete:hover { background: #fee2e2; }
+.icon-review { color: #4f46e5; }     .icon-review:hover { background: #e0e7ff; }
 
 /* =======================================================
- * WARNA KATEGORI KEHADIRAN (Dashboard & Review)
- * ======================================================= */
+   WARNA KATEGORI (Dashboard & Review)
+   ======================================================= */
+.color-sakit-title { background:#f59e0b; }
+.bg-sakit-total    { background:#fffdf5; color:#d97706; }
+.bg-sakit-badge    { background:#fef3c7; color:#d97706; }
+.border-sakit-500  { border-color:#f59e0b; }
 
-/* --- 1. SAKIT (Amber/Kuning) --- */
-.color-sakit-title { background-color: #f59e0b; }
-.bg-sakit-total { background-color: #fffdf5; color: #d97706; }
-.bg-sakit-badge { background-color: #fef3c7; color: #d97706; }
-.border-sakit-500 { border-color: #f59e0b; }
+.color-cuti-title { background:#10b981; }
+.bg-cuti-total    { background:#f0fdf4; color:#059669; }
+.bg-cuti-badge    { background:#d1fae5; color:#059669; }
+.border-cuti-500  { border-color:#10b981; }
 
-/* --- 2. CUTI (Emerald/Hijau) --- */
-.color-cuti-title { background-color: #10b981; }
-.bg-cuti-total { background-color: #f0fdf4; color: #059669; }
-.bg-cuti-badge { background-color: #d1fae5; color: #059669; }
-.border-cuti-500 { border-color: #10b981; }
+.color-terlambat-title { background:#ef4444; }
+.bg-terlambat-total    { background:#fef2f2; color:#dc2626; }
+.bg-terlambat-badge    { background:#fee2e2; color:#dc2626; }
+.border-terlambat-500  { border-color:#ef4444; }
 
-/* --- 3. TERLAMBAT (Red/Merah) --- */
-.color-terlambat-title { background-color: #ef4444; }
-.bg-terlambat-total { background-color: #fef2f2; color: #dc2626; }
-.bg-terlambat-badge { background-color: #fee2e2; color: #dc2626; }
-.border-terlambat-500 { border-color: #ef4444; }
+.color-alpa-title { background:#3b82f6; }
+.bg-alpa-total    { background:#eff6ff; color:#2563eb; }
+.bg-alpa-badge    { background:#dbeafe; color:#2563eb; }
+.border-alpa-500  { border-color:#3b82f6; }
 
-/* --- 4. ALPA (Blue/Biru) --- */
-.color-alpa-title { background-color: #3b82f6; }
-.bg-alpa-total { background-color: #eff6ff; color: #2563eb; }
-.bg-alpa-badge { background-color: #dbeafe; color: #2563eb; }
-.border-alpa-500 { border-color: #3b82f6; }
+.color-izin-title { background:#06b6d4; }
+.bg-izin-total    { background:#f0faff; color:#0891b2; }
+.bg-izin-badge    { background:#cffafe; color:#0891b2; }
+.border-izin-500  { border-color:#06b6d4; }
 
-/* --- 5. IZIN (Cyan/Aqua) --- */
-.color-izin-title { background-color: #06b6d4; }
-.bg-izin-total { background-color: #f0faff; color: #0891b2; }
-.bg-izin-badge { background-color: #cffafe; color: #0891b2; }
-.border-izin-500 { border-color: #06b6d4; }
+.color-dinas_luar-title { background:#4f46e5; }
+.bg-dinas_luar-total    { background:#eef2ff; color:#4f46e5; }
+.bg-dinas_luar-badge    { background:#c7d2fe; color:#4f46e5; }
+.border-dinas_luar-500  { border-color:#4f46e5; }
 
-/* --- 6. DINAS LUAR (Indigo/Ungu) --- */
-.color-dinas_luar-title { background-color: #4f46e5; }
-.bg-dinas_luar-total { background-color: #eef2ff; color: #4f46e5; }
-.bg-dinas_luar-badge { background-color: #c7d2fe; color: #4f46e5; }
-.border-dinas_luar-500 { border-color: #4f46e5; }
+/* =======================================================
+   RESPONSIVE LAYOUT: Sidebar & Main
+   ======================================================= */
+
+/* Desktop (>= 1024px): sidebar fixed kiri, main scroll */
+@media (min-width: 1024px) {
+  #sidebar{
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  main{
+    /* paksa selaras dgn sidebar; override class Tailwind jika ada */
+    margin-left: var(--sidebar-w) !important;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/* Mobile & Tablet (< 1024px): sidebar jadi sticky full-width di atas */
+@media (max-width: 1023.98px){
+  #sidebar{
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    z-index: 30;
+    padding-bottom: .5rem;
+  }
+  /* judul sidebar sedikit diperkecil */
+  #sidebar .text-2xl{ font-size: 1.25rem; line-height: 1.75rem; }
+  /* tombol nav 100% lebar agar mudah disentuh */
+  #sidebar nav button{ width: 100%; }
+
+  /* konten geser ke nol (override ml-64 dari HTML) */
+  main{ margin-left: 0 !important; padding: 1rem; }
+
+  /* biar scroll halus di iOS/Android */
+  main, #sidebar{ -webkit-overflow-scrolling: touch; }
+
+  /* kompakkan beberapa spacing & heading di mobile */
+  h1.text-3xl{ font-size: 1.5rem; line-height: 2rem; }
+  h2.text-xl{ font-size: 1.125rem; line-height: 1.75rem; }
+}
+
+/* Phone kecil (< 640px): tighter spacing */
+@media (max-width: 639.98px){
+  .container-shadow{ box-shadow: 0 6px 12px -4px rgba(0,0,0,.08), 0 3px 6px -3px rgba(0,0,0,.05); }
+  .btn, button, .icon-button{ min-height: 44px; } /* target sentuh aman */
+  /* pastikan elemen form lebar penuh */
+  input, select, textarea{ width: 100%; }
+}
+
+/* Optional: sembunyikan scrollbar horizontal tak sengaja */
+#dashboard-container, #employee-list-container{
+  overflow-x: auto;
+}
+
+/* Safe-area iPhone notch (opsional) */
+@supports(padding:max(0px)){
+  #sidebar{ padding-top: max(env(safe-area-inset-top), 1rem); }
+  main{ padding-bottom: max(env(safe-area-inset-bottom), 0); }
+}
