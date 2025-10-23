@@ -76,6 +76,9 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("nav-input")?.addEventListener("click", () => window.setView("input"));
   document.getElementById("nav-punishmen")?.addEventListener("click", () => window.setView("punishmen"));
   document.getElementById("nav-employee_db")?.addEventListener("click", () => window.setView("employee_db"));
+
+  // ⬇️ penting untuk GitHub Pages yang memblok inline onclick
+  document.getElementById("btn-delete-all")?.addEventListener("click", () => window.deleteAllEmployees());
 });
 
 /* =========================================================================
@@ -260,13 +263,21 @@ window.deleteAllEmployees = async () => {
       renderEmployeeDropdowns();
       renderEmployeeList();
       renderDashboard();
-      renderPunishList();
+      renderPunishList?.();
       showMessage("Semua data lokal berhasil dihapus.");
     } else {
       // Cloud: hapus semua dokumen di employees dan attendance_records
       const base = `artifacts/${appId}/users/${userId}`;
       const deletedEmp = await deleteAllDocsInCollection(`${base}/employees`);
       const deletedAtt = await deleteAllDocsInCollection(`${base}/attendance_records`);
+
+      // bersihkan cache lokal agar UI langsung kosong
+      employees = [];
+      attendanceRecords = [];
+      saveLocalData();
+      renderEmployeeDropdowns();
+      renderEmployeeList();
+      renderDashboard();
 
       showMessage(`Hapus Cloud sukses. Karyawan: ${deletedEmp}, Catatan kehadiran: ${deletedAtt}.`);
     }
