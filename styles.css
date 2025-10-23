@@ -1,165 +1,81 @@
-/* =======================
-   FINAL CSS RESPONSIVE
-   ======================= */
+/* ====== Gaya tambahan supaya kelas dinamis dari JS punya warna tetap ====== */
 
-/* Fonts & base */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-
-:root{
-  /* Lebar sidebar default; otomatis diubah di layar sangat lebar */
-  --sidebar-w: 16rem;      /* ~Tailwind w-64 */
-  --content-max: 1440px;   /* batas lebar konten agar nyaman di monitor besar */
-}
-
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  font-family: 'Inter', sans-serif;
-  background: #f8fafc; /* slate-50 */
-  color: #0f172a;      /* slate-900 */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Card shadow util */
+/* Bayangan halus untuk kartu/container */
 .container-shadow {
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+  box-shadow: 0 10px 25px rgba(2, 6, 23, 0.06), 0 4px 12px rgba(2, 6, 23, 0.04);
 }
 
-/* Form inputs */
-input[type="date"], input[type="time"], select, textarea {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  width: 100%;
+/* Tombol ikon kecil (lihat/list, edit, hapus) */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  border-radius: .5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  color: #4b5563;            /* gray-600 */
+  transition: all .2s ease;
 }
-@supports (-webkit-touch-callout: none) {
-  /* Cegah auto-zoom iOS saat fokus */
-  input[type="date"], input[type="time"], select, textarea { font-size: 16px; }
+.icon-button svg { width: 1.1rem; height: 1.1rem; }
+.icon-review:hover {
+  background: #FEF3C7; /* amber-100 */
+  border-color: #F59E0B; /* amber-500 */
+  color: #92400E; /* amber-800 */
 }
-
-/* Icon buttons */
-.icon-button { padding: .5rem; border-radius: 9999px; transition: all .15s ease-in-out; }
-.icon-button:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.06); }
-.icon-edit { color: #2563eb; }       .icon-edit:hover { background: #eff6ff; }
-.icon-delete { color: #dc2626; }     .icon-delete:hover { background: #fee2e2; }
-.icon-review { color: #4f46e5; }     .icon-review:hover { background: #e0e7ff; }
-
-/* ==========================================
-   WARNA KATEGORI (Dashboard & Review)
-   ========================================== */
-.color-sakit-title { background:#f59e0b; }
-.bg-sakit-total    { background:#fffdf5; color:#d97706; }
-.bg-sakit-badge    { background:#fef3c7; color:#d97706; }
-.border-sakit-500  { border-color:#f59e0b; }
-
-.color-cuti-title { background:#10b981; }
-.bg-cuti-total    { background:#f0fdf4; color:#059669; }
-.bg-cuti-badge    { background:#d1fae5; color:#059669; }
-.border-cuti-500  { border-color:#10b981; }
-
-.color-terlambat-title { background:#ef4444; }
-.bg-terlambat-total    { background:#fef2f2; color:#dc2626; }
-.bg-terlambat-badge    { background:#fee2e2; color:#dc2626; }
-.border-terlambat-500  { border-color:#ef4444; }
-
-.color-alpa-title { background:#3b82f6; }
-.bg-alpa-total    { background:#eff6ff; color:#2563eb; }
-.bg-alpa-badge    { background:#dbeafe; color:#2563eb; }
-.border-alpa-500  { border-color:#3b82f6; }
-
-.color-izin-title { background:#06b6d4; }
-.bg-izin-total    { background:#f0faff; color:#0891b2; }
-.bg-izin-badge    { background:#cffafe; color:#0891b2; }
-.border-izin-500  { border-color:#06b6d4; }
-
-.color-dinas_luar-title { background:#4f46e5; }
-.bg-dinas_luar-total    { background:#eef2ff; color:#4f46e5; }
-.bg-dinas_luar-badge    { background:#c7d2fe; color:#4f46e5; }
-.border-dinas_luar-500  { border-color:#4f46e5; }
-
-/* ==========================================
-   LAYOUT: Sidebar & Main (mobile-first)
-   ========================================== */
-
-/* Elemen wajib: #sidebar dan <main> (id bebas).
-   Pastikan keduanya adalah sibling (sejajar) di DOM. */
-
-/* Default untuk perangkat kecil — sidebar jadi bar atas */
-#sidebar{
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  width: 100%;
-  height: auto;
-  padding-bottom: .5rem;
-  -webkit-overflow-scrolling: touch;
+.icon-edit:hover {
+  background: #E0E7FF; /* indigo-100 */
+  border-color: #6366F1; /* indigo-500 */
+  color: #3730A3; /* indigo-800 */
 }
-#sidebar .text-2xl{ font-size: 1.25rem; line-height: 1.75rem; }
-#sidebar nav button{ width: 100%; }
-
-/* Konten utama */
-main{
-  margin: 0 !important;              /* override kelas Tailwind ml-64 saat mobile */
-  padding: 1rem;
-  min-height: 100svh;                 /* viewport dynamic pada mobile */
-  background: #ffffff;                /* pastikan kontras, biar "tidak terlihat cuma sidebar" */
-  overflow: auto;
-  min-width: 0;                       /* BIAR GRID/FLEX tidak memaksa overflow horizontal */
+.icon-delete:hover {
+  background: #FEE2E2; /* red-100 */
+  border-color: #EF4444; /* red-500 */
+  color: #991B1B; /* red-800 */
 }
 
-/* Phone kecil */
-@media (max-width: 639.98px){
-  .container-shadow{ box-shadow: 0 6px 12px -4px rgba(0,0,0,.08), 0 3px 6px -3px rgba(0,0,0,.05); }
-  .btn, button, .icon-button{ min-height: 44px; }  /* target sentuh aman */
-  h1.text-3xl{ font-size: 1.375rem; line-height: 1.875rem; }
-  h2.text-xl{ font-size: 1.125rem; line-height: 1.75rem; }
+/* Palet warna untuk tiap kategori (dipakai di JS dengan kelas dinamis) */
+:root{
+  --sakit:#f59e0b;         --sakit-bg:#FEF3C7;         --sakit-badge:#FDE68A;
+  --cuti:#10b981;          --cuti-bg:#D1FAE5;          --cuti-badge:#A7F3D0;
+  --terlambat:#ef4444;     --terlambat-bg:#FEE2E2;     --terlambat-badge:#FCA5A5;
+  --alpa:#3b82f6;          --alpa-bg:#DBEAFE;          --alpa-badge:#93C5FD;
+  --izin:#06b6d4;          --izin-bg:#CFFAFE;          --izin-badge:#99F6E4;
+  --dinas_luar:#6366f1;    --dinas_luar-bg:#E0E7FF;    --dinas_luar-badge:#C7D2FE;
 }
 
-/* Tablet & Desktop (>= 1024px): sidebar tetap kiri, main di kanan */
-@media (min-width: 1024px){
-  /* Sidebar ditempel kiri & scrollable */
-  #sidebar{
-    position: fixed;
-    left: 0; top: 0;
-    width: var(--sidebar-w);
-    height: 100dvh;                   /* gunakan dynamic vh agar tidak terpotong di mobile desktop mode */
-    overflow-y: auto;
-  }
-  /* Main digeser tepat selebar sidebar */
-  main{
-    margin-left: var(--sidebar-w) !important;  /* override ml-64 dll */
-    min-height: 100dvh;
-    padding: 1.25rem 1.5rem;
-    overflow: auto;
-  }
-  /* Batas lebar konten biar nyaman di monitor lebar */
-  main > .container,
-  main > .wrap,
-  main > .content{
-    max-width: var(--content-max);
-    margin-inline: auto;
-    width: 100%;
-  }
-}
+/* Sakit */
+.color-sakit-title { background: linear-gradient(90deg, var(--sakit), #fbbf24); }
+.bg-sakit-total    { background: var(--sakit-bg); }
+.bg-sakit-badge    { background: var(--sakit-badge); color:#92400E; }
+.border-sakit-500  { border-color: var(--sakit) !important; }
 
-/* 2XL Monitor sangat lebar: sedikit perbesar sidebar */
-@media (min-width: 1536px){
-  :root{ --sidebar-w: 18rem; } /* ~w-72 */
-}
+/* Cuti */
+.color-cuti-title  { background: linear-gradient(90deg, var(--cuti), #34d399); }
+.bg-cuti-total     { background: var(--cuti-bg); }
+.bg-cuti-badge     { background: var(--cuti-badge); color:#065F46; }
+.border-cuti-500   { border-color: var(--cuti) !important; }
 
-/* 4K Monitor (opsional) */
-@media (min-width: 1920px){
-  :root{ --sidebar-w: 20rem; } /* ~w-80 */
-}
+/* Terlambat */
+.color-terlambat-title { background: linear-gradient(90deg, var(--terlambat), #fb7185); }
+.bg-terlambat-total    { background: var(--terlambat-bg); }
+.bg-terlambat-badge    { background: var(--terlambat-badge); color:#7F1D1D; }
+.border-terlambat-500  { border-color: var(--terlambat) !important; }
 
-/* Hilangkan scroll-x tak sengaja pada container tabel/list */
-#dashboard-container, #employee-list-container{
-  overflow-x: auto;
-}
+/* ALPA */
+.color-alpa-title  { background: linear-gradient(90deg, var(--alpa), #60a5fa); }
+.bg-alpa-total     { background: var(--alpa-bg); }
+.bg-alpa-badge     { background: var(--alpa-badge); color:#1E3A8A; }
+.border-alpa-500   { border-color: var(--alpa) !important; }
 
-/* Safe-area iPhone notch */
-@supports(padding:max(0px)){
-  #sidebar{ padding-top: max(env(safe-area-inset-top), 1rem); }
-  main{ padding-bottom: max(env(safe-area-inset-bottom), 0); }
-}
+/* IZIN */
+.color-izin-title  { background: linear-gradient(90deg, var(--izin), #22d3ee); }
+.bg-izin-total     { background: var(--izin-bg); }
+.bg-izin-badge     { background: var(--izin-badge); color:#155E75; }
+.border-izin-500   { border-color: var(--izin) !important; }
+
+/* DINAS LUAR */
+.color-dinas_luar-title { background: linear-gradient(90deg, var(--dinas_luar), #8b5cf6); }
+.bg-dinas_luar-total    { background: var(--dinas_luar-bg); }
+.bg-dinas_luar-badge    { background: var(--dinas_luar-badge); color:#3730A3; }
+.border-dinas_luar-500  { border-color: var(--dinas_luar) !important; }
