@@ -1,8 +1,14 @@
-/* ========== Fonts & base ========== */
+/* =======================
+   FINAL CSS RESPONSIVE
+   ======================= */
+
+/* Fonts & base */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
 :root{
-  --sidebar-w: 16rem; /* 64 (Tailwind) */
+  /* Lebar sidebar default; otomatis diubah di layar sangat lebar */
+  --sidebar-w: 16rem;      /* ~Tailwind w-64 */
+  --content-max: 1440px;   /* batas lebar konten agar nyaman di monitor besar */
 }
 
 * { box-sizing: border-box; }
@@ -10,6 +16,9 @@ html, body { height: 100%; }
 body {
   font-family: 'Inter', sans-serif;
   background: #f8fafc; /* slate-50 */
+  color: #0f172a;      /* slate-900 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Card shadow util */
@@ -17,28 +26,28 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
 }
 
-/* ===== Form inputs ===== */
+/* Form inputs */
 input[type="date"], input[type="time"], select, textarea {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  width: 100%;
 }
-
-/* Anti-auto-zoom iOS saat fokus */
 @supports (-webkit-touch-callout: none) {
+  /* Cegah auto-zoom iOS saat fokus */
   input[type="date"], input[type="time"], select, textarea { font-size: 16px; }
 }
 
-/* ===== Icon buttons (ganti @apply) ===== */
+/* Icon buttons */
 .icon-button { padding: .5rem; border-radius: 9999px; transition: all .15s ease-in-out; }
 .icon-button:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.06); }
 .icon-edit { color: #2563eb; }       .icon-edit:hover { background: #eff6ff; }
 .icon-delete { color: #dc2626; }     .icon-delete:hover { background: #fee2e2; }
 .icon-review { color: #4f46e5; }     .icon-review:hover { background: #e0e7ff; }
 
-/* =======================================================
+/* ==========================================
    WARNA KATEGORI (Dashboard & Review)
-   ======================================================= */
+   ========================================== */
 .color-sakit-title { background:#f59e0b; }
 .bg-sakit-total    { background:#fffdf5; color:#d97706; }
 .bg-sakit-badge    { background:#fef3c7; color:#d97706; }
@@ -69,69 +78,87 @@ input[type="date"], input[type="time"], select, textarea {
 .bg-dinas_luar-badge    { background:#c7d2fe; color:#4f46e5; }
 .border-dinas_luar-500  { border-color:#4f46e5; }
 
-/* =======================================================
-   RESPONSIVE LAYOUT: Sidebar & Main
-   ======================================================= */
+/* ==========================================
+   LAYOUT: Sidebar & Main (mobile-first)
+   ========================================== */
 
-/* Desktop (>= 1024px): sidebar fixed kiri, main scroll */
-@media (min-width: 1024px) {
-  #sidebar{
-    position: fixed;
-    top: 0; left: 0;
-    width: var(--sidebar-w);
-    height: 100vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  main{
-    /* paksa selaras dgn sidebar; override class Tailwind jika ada */
-    margin-left: var(--sidebar-w) !important;
-    height: 100vh;
-    overflow-y: auto;
-  }
+/* Elemen wajib: #sidebar dan <main> (id bebas).
+   Pastikan keduanya adalah sibling (sejajar) di DOM. */
+
+/* Default untuk perangkat kecil — sidebar jadi bar atas */
+#sidebar{
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  width: 100%;
+  height: auto;
+  padding-bottom: .5rem;
+  -webkit-overflow-scrolling: touch;
+}
+#sidebar .text-2xl{ font-size: 1.25rem; line-height: 1.75rem; }
+#sidebar nav button{ width: 100%; }
+
+/* Konten utama */
+main{
+  margin: 0 !important;              /* override kelas Tailwind ml-64 saat mobile */
+  padding: 1rem;
+  min-height: 100svh;                 /* viewport dynamic pada mobile */
+  background: #ffffff;                /* pastikan kontras, biar "tidak terlihat cuma sidebar" */
+  overflow: auto;
+  min-width: 0;                       /* BIAR GRID/FLEX tidak memaksa overflow horizontal */
 }
 
-/* Mobile & Tablet (< 1024px): sidebar jadi sticky full-width di atas */
-@media (max-width: 1023.98px){
-  #sidebar{
-    position: sticky;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: auto;
-    z-index: 30;
-    padding-bottom: .5rem;
-  }
-  /* judul sidebar sedikit diperkecil */
-  #sidebar .text-2xl{ font-size: 1.25rem; line-height: 1.75rem; }
-  /* tombol nav 100% lebar agar mudah disentuh */
-  #sidebar nav button{ width: 100%; }
-
-  /* konten geser ke nol (override ml-64 dari HTML) */
-  main{ margin-left: 0 !important; padding: 1rem; }
-
-  /* biar scroll halus di iOS/Android */
-  main, #sidebar{ -webkit-overflow-scrolling: touch; }
-
-  /* kompakkan beberapa spacing & heading di mobile */
-  h1.text-3xl{ font-size: 1.5rem; line-height: 2rem; }
+/* Phone kecil */
+@media (max-width: 639.98px){
+  .container-shadow{ box-shadow: 0 6px 12px -4px rgba(0,0,0,.08), 0 3px 6px -3px rgba(0,0,0,.05); }
+  .btn, button, .icon-button{ min-height: 44px; }  /* target sentuh aman */
+  h1.text-3xl{ font-size: 1.375rem; line-height: 1.875rem; }
   h2.text-xl{ font-size: 1.125rem; line-height: 1.75rem; }
 }
 
-/* Phone kecil (< 640px): tighter spacing */
-@media (max-width: 639.98px){
-  .container-shadow{ box-shadow: 0 6px 12px -4px rgba(0,0,0,.08), 0 3px 6px -3px rgba(0,0,0,.05); }
-  .btn, button, .icon-button{ min-height: 44px; } /* target sentuh aman */
-  /* pastikan elemen form lebar penuh */
-  input, select, textarea{ width: 100%; }
+/* Tablet & Desktop (>= 1024px): sidebar tetap kiri, main di kanan */
+@media (min-width: 1024px){
+  /* Sidebar ditempel kiri & scrollable */
+  #sidebar{
+    position: fixed;
+    left: 0; top: 0;
+    width: var(--sidebar-w);
+    height: 100dvh;                   /* gunakan dynamic vh agar tidak terpotong di mobile desktop mode */
+    overflow-y: auto;
+  }
+  /* Main digeser tepat selebar sidebar */
+  main{
+    margin-left: var(--sidebar-w) !important;  /* override ml-64 dll */
+    min-height: 100dvh;
+    padding: 1.25rem 1.5rem;
+    overflow: auto;
+  }
+  /* Batas lebar konten biar nyaman di monitor lebar */
+  main > .container,
+  main > .wrap,
+  main > .content{
+    max-width: var(--content-max);
+    margin-inline: auto;
+    width: 100%;
+  }
 }
 
-/* Optional: sembunyikan scrollbar horizontal tak sengaja */
+/* 2XL Monitor sangat lebar: sedikit perbesar sidebar */
+@media (min-width: 1536px){
+  :root{ --sidebar-w: 18rem; } /* ~w-72 */
+}
+
+/* 4K Monitor (opsional) */
+@media (min-width: 1920px){
+  :root{ --sidebar-w: 20rem; } /* ~w-80 */
+}
+
+/* Hilangkan scroll-x tak sengaja pada container tabel/list */
 #dashboard-container, #employee-list-container{
   overflow-x: auto;
 }
 
-/* Safe-area iPhone notch (opsional) */
+/* Safe-area iPhone notch */
 @supports(padding:max(0px)){
   #sidebar{ padding-top: max(env(safe-area-inset-top), 1rem); }
   main{ padding-bottom: max(env(safe-area-inset-bottom), 0); }
