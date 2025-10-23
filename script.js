@@ -70,6 +70,7 @@ window.formatDate = (timestamp) => {
 
 window.showMessage = (message, type = "success") => {
   const messageBox = document.getElementById("message-box");
+  if (!messageBox) return; // guard
   messageBox.textContent = message;
 
   messageBox.className = "p-3 rounded-lg text-center font-semibold mb-4";
@@ -85,6 +86,62 @@ window.showMessage = (message, type = "success") => {
 };
 
 /* =========================================================================
+ * >>> DIDEFINISIKAN LEBIH AWAL: RENDER LIST & DROPDOWN <<<
+ * (dipanggil oleh loadLocalData/renderApp di awal eksekusi)
+ * ========================================================================= */
+function renderEmployeeList() {
+  const listContainer = document.getElementById("employee-list-container");
+  if (!listContainer) return;
+
+  if (!employees.length) {
+    listContainer.innerHTML = '<p class="text-gray-500 italic">Belum ada data karyawan. Silakan tambahkan di atas.</p>';
+    return;
+  }
+
+  const html = `
+    <div class="space-y-3">
+      <div class="p-4 bg-indigo-100 font-bold text-indigo-800 rounded-t-lg flex justify-between">
+        <span>NAMA / NID / BIDANG</span><span>AKSI</span>
+      </div>
+      ${employees.map(emp => `
+        <div class="p-4 bg-white rounded-lg border border-gray-200 flex justify-between items-center">
+          <div>
+            <p class="font-semibold text-gray-800">${emp.name}</p>
+            <p class="text-sm text-gray-500">NID: ${emp.nid}</p>
+            <p class="text-sm text-indigo-600">${emp.bidang}</p>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="reviewEmployeeDetails('${emp.id}', '${String(emp.name).replace(/'/g,"\\'")}')" class="icon-button icon-review" title="Lihat Histori">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-9 0V3h4v2m-4 0h4m-4 4h9m-9 4h9m-9 4h6"/></svg>
+            </button>
+            <button onclick="openEditModal('${emp.id}')" class="icon-button icon-edit" title="Edit Karyawan">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button onclick="deleteEmployee('${emp.id}', '${String(emp.name).replace(/'/g,"\\'")}')" class="icon-button icon-delete" title="Hapus Karyawan">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </div>`).join("")}
+    </div>`;
+  listContainer.innerHTML = html;
+}
+
+function renderEmployeeDropdowns() {
+  const dropdownIds = ATTENDANCE_TYPES.map(type => `select-${type.toLowerCase().replace(/\s/g,"_")}`);
+  const baseOptions = '<option value="" selected>-- Pilih Karyawan --</option>' +
+    employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.nid} - ${emp.bidang})</option>`).join("");
+
+  // dropdown kehadiran
+  dropdownIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = baseOptions; });
+
+  // dropdown punishmen (tambah & edit)
+  const pAdd = document.getElementById("punish-employee");
+  if (pAdd) pAdd.innerHTML = baseOptions;
+  const pEdit = document.getElementById("edit-punish-employee");
+  if (pEdit) pEdit.innerHTML = baseOptions;
+}
+
+/* =========================================================================
  * LOCAL STORAGE HELPERS
  * ========================================================================= */
 function loadLocalData() {
@@ -93,6 +150,7 @@ function loadLocalData() {
     attendanceRecords  = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
     punishmentRecords  = JSON.parse(localStorage.getItem("punishmentRecords") || "[]");
 
+    // Panggil fungsi yang sekarang sudah pasti terdefinisi
     renderEmployeeDropdowns();
     renderEmployeeList();
     renderDashboard();
@@ -121,7 +179,8 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       userId = user.uid;
-      document.getElementById("user-info").textContent = `User ID: ${userId}`;
+      const ui = document.getElementById("user-info");
+      if (ui) ui.textContent = `User ID: ${userId}`;
     } else {
       if (initialAuthToken) {
         try { await signInWithCustomToken(auth, initialAuthToken); }
@@ -136,7 +195,8 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
 } else {
   isLocalMode = true;
   console.warn("Mode LOKAL aktif. Data disimpan di LocalStorage.");
-  document.getElementById("user-info").textContent = `User ID: LOCAL STORAGE`;
+  const ui = document.getElementById("user-info");
+  if (ui) ui.textContent = `User ID: LOCAL STORAGE`;
   loadLocalData();
 }
 
@@ -181,9 +241,9 @@ window.openEditModal      = (id) => {
   document.getElementById("edit-employee-name").value = emp.name;
   document.getElementById("edit-employee-nid").value  = emp.nid;
   document.getElementById("edit-employee-bidang").value = emp.bidang;
-  const m = document.getElementById("edit-modal"); m.classList.remove("hidden"); m.classList.add("flex");
+  const m = document.getElementById("edit-modal"); if (m){ m.classList.remove("hidden"); m.classList.add("flex"); }
 };
-window.closeEditModal     = () => { const m = document.getElementById("edit-modal"); m.classList.remove("flex"); m.classList.add("hidden"); };
+window.closeEditModal     = () => { const m = document.getElementById("edit-modal"); if (m){ m.classList.remove("flex"); m.classList.add("hidden"); } };
 window.saveEmployeeChanges = async () => {
   const id = document.getElementById("edit-employee-id").value;
   const name   = document.getElementById("edit-employee-name").value.trim();
@@ -394,41 +454,17 @@ function saveEmployeeChangesLocal(id, updated) {
 }
 
 /* =========================================================================
- * RENDER & NAVIGASI (FINAL, kompatibel tanpa ubah sistem)
+ * RENDER & NAVIGASI
  * ========================================================================= */
 let currentView = "dashboard";
 const today = new Date();
 const defaultMonth = today.toISOString().substring(0, 7);
 let currentFilterMonth = defaultMonth;
+
 /* NEW: filter bulan Punishmen */
 let currentPunishMonth = defaultMonth;
-/* tampilkan info lokal sekali */
-let _localModeBannerShown = false;
 
-/* Normalisasi view: terima employee_db & employee-db */
-const normalizeView = (v) => {
-  const s = String(v || "").toLowerCase();
-  if (!s) return "dashboard";
-  if (s === "employee-db" || s === "employee_db") return "employee_db";
-  return s;
-};
-/* Bentuk hash rapi */
-const viewToHash = (v) => (v === "employee_db" ? "employee-db" : v);
-
-/* peta id tombol nav */
-const NAV_IDS = {
-  dashboard:   ["nav-dashboard"],
-  input:       ["nav-input"],
-  punishmen:   ["nav-punishmen"],
-  employee_db: ["nav-employee_db", "nav-employee-db"],
-};
-
-window.setView = (view) => {
-  currentView = normalizeView(view);
-  renderApp();
-  const wantHash = "#" + viewToHash(currentView);
-  if (location.hash !== wantHash) history.replaceState(null, "", wantHash);
-};
+window.setView = (view) => { currentView = view; renderApp(); };
 window.handleMonthChange = (e) => { currentFilterMonth = e.target.value; renderDashboard(); };
 
 function updateDateTimeInputs() {
@@ -441,39 +477,28 @@ function updatePunishDateAndFilter() {
   const d = document.getElementById("punish-date");
   const m = document.getElementById("punish-filter-month");
   if (d) d.value = today.toISOString().substring(0,10);
-  if (m) {
-    m.value = currentPunishMonth;
-    m.onchange = (e)=>{ currentPunishMonth = e.target.value; renderPunishList(); };
-  }
+  if (m) { m.value = currentPunishMonth; m.onchange = (e)=>{ currentPunishMonth = e.target.value; renderPunishList(); }; }
 }
 
 function renderApp() {
-  // reset nav styles (hanya tombol di nav)
-  document.querySelectorAll("#sidebar nav button").forEach((btn) => {
-    btn.classList.remove("bg-indigo-700","bg-indigo-600","text-white");
+  // reset nav styles
+  document.querySelectorAll("#sidebar button").forEach((btn) => {
+    btn.classList.remove("bg-indigo-600","text-white");
     btn.classList.add("text-indigo-200","hover:bg-indigo-700");
   });
-  // highlight aktif (selain review-detail)
-  if (currentView !== "review-detail") {
-    const ids = NAV_IDS[currentView] || [];
-    for (const id of ids) {
-      const btn = document.getElementById(id);
-      if (btn) {
-        btn.classList.add("bg-indigo-600","text-white");
-        btn.classList.remove("text-indigo-200","hover:bg-indigo-700");
-        break;
-      }
-    }
+  const activeBtn = document.getElementById(`nav-${currentView}`);
+  if (activeBtn && currentView !== "review-detail") {
+    activeBtn.classList.add("bg-indigo-600","text-white");
+    activeBtn.classList.remove("text-indigo-200","hover:bg-indigo-700");
   }
 
   // toggle views
-  document.getElementById("view-employee-db")?.classList.toggle("hidden", currentView !== "employee_db");
-  document.getElementById("view-input")?.classList.toggle("hidden", currentView !== "input");
-  document.getElementById("view-dashboard")?.classList.toggle("hidden", currentView !== "dashboard");
-  document.getElementById("view-review-detail")?.classList.toggle("hidden", currentView !== "review-detail");
-  document.getElementById("view-punishmen")?.classList.toggle("hidden", currentView !== "punishmen");
+  document.getElementById("view-employee-db").classList.toggle("hidden", currentView !== "employee_db");
+  document.getElementById("view-input").classList.toggle("hidden", currentView !== "input");
+  document.getElementById("view-dashboard").classList.toggle("hidden", currentView !== "dashboard");
+  document.getElementById("view-review-detail").classList.toggle("hidden", currentView !== "review-detail");
+  document.getElementById("view-punishmen").classList.toggle("hidden", currentView !== "punishmen");
 
-  // hook per-halaman
   if (currentView === "employee_db") {
     renderEmployeeList();
   } else if (currentView === "input") {
@@ -481,17 +506,16 @@ function renderApp() {
   } else if (currentView === "dashboard") {
     renderDashboard();
   } else if (currentView === "punishmen") {
+    // pastikan dropdown & tanggal & filter siap
     renderEmployeeDropdowns();
     updatePunishDateAndFilter();
     renderPunishList();
   }
 
-  // info mode lokal (sekali)
-  if (isLocalMode && !_localModeBannerShown) {
-    showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "info");
-    _localModeBannerShown = true;
-  } else if (!isLocalMode) {
-    document.getElementById("message-box")?.classList.add("hidden");
+  if (isLocalMode) showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "error");
+  else {
+    const msg = document.getElementById("message-box");
+    if (msg) msg.classList.add("hidden");
   }
 }
 
@@ -696,9 +720,9 @@ window.openEditPunish = (id) => {
   document.getElementById("edit-punish-desc").value = rec.desc || "";
   document.getElementById("edit-punish-file").value = "";
 
-  const m = document.getElementById("punish-edit-modal"); m.classList.remove("hidden"); m.classList.add("flex");
+  const m = document.getElementById("punish-edit-modal"); if (m){ m.classList.remove("hidden"); m.classList.add("flex"); }
 };
-window.closeEditPunish = () => { const m = document.getElementById("punish-edit-modal"); m.classList.remove("flex"); m.classList.add("hidden"); };
+window.closeEditPunish = () => { const m = document.getElementById("punish-edit-modal"); if (m){ m.classList.remove("flex"); m.classList.add("hidden"); } };
 window.saveEditPunish = async () => {
   const id = document.getElementById("edit-punish-id").value;
   const date   = document.getElementById("edit-punish-date").value;
@@ -734,18 +758,7 @@ window.saveEditPunish = async () => {
 };
 
 /* =========================================================================
- * RENDER AWAL + ROUTING HASH (tunggu DOM siap karena <script type="module"> diletakkan di <head>)
+ * RENDER AWAL
  * ========================================================================= */
-window.addEventListener("DOMContentLoaded", () => {
-  const start = normalizeView(location.hash ? location.hash.slice(1) : "dashboard");
-  currentView = start;
-  renderApp();
-
-  window.addEventListener("hashchange", () => {
-    const next = normalizeView(location.hash.slice(1));
-    if (next && next !== currentView) {
-      currentView = next;
-      renderApp();
-    }
-  });
-});
+window.onload = () => { renderApp(); };
+git status
