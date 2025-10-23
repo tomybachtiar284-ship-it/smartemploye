@@ -41,17 +41,6 @@ const firebaseConfig =
 const initialAuthToken =
   typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
-// Polyfill ringan untuk crypto.randomUUID (browser lama)
-if (!('crypto' in window) || !('randomUUID' in crypto)) {
-  window.crypto = window.crypto || {};
-  crypto.randomUUID = crypto.randomUUID || (() =>
-    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    })
-  );
-}
-
 let db, auth, userId = null;
 
 let employees = [];
@@ -67,11 +56,11 @@ const ATTENDANCE_TYPES = [
 ];
 
 /* =========================================================================
- * GLOBAL STATE (di-hoist agar tersedia sebelum loadLocalData/render*)
+ * GLOBAL STATE (diletakkan di atas agar tidak “tembak di tempat”)
  * ========================================================================= */
 let currentView = "dashboard";
 const today = new Date();
-const defaultMonth = today.toISOString().slice(0, 7); // YYYY-MM
+const defaultMonth = today.toISOString().slice(0, 7);
 let currentFilterMonth = defaultMonth;
 
 /* NEW: filter bulan Punishmen */
@@ -91,6 +80,17 @@ window.addEventListener("DOMContentLoaded", () => {
 /* =========================================================================
  * UTILITIES
  * ========================================================================= */
+
+// Namespace LocalStorage agar data GitHub Pages dan Lokal terpisah
+const STORE_PREFIX = location.hostname.includes("github.io") ? "gh:" : "local:";
+const lsGet = (key) => {
+  // prioritas ke key namespaced; fallback ke legacy (tanpa prefix) supaya data lama tetap terbaca
+  let v = localStorage.getItem(STORE_PREFIX + key);
+  if (v == null) v = localStorage.getItem(key);
+  return v;
+};
+const lsSet = (key, val) => localStorage.setItem(STORE_PREFIX + key, val);
+
 window.formatDate = (timestamp) => {
   if (!timestamp) return "N/A";
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -103,9 +103,9 @@ window.formatDate = (timestamp) => {
 
 window.showMessage = (message, type = "success") => {
   const messageBox = document.getElementById("message-box");
-  if (!messageBox) { console[type === 'error' ? 'error' : 'log'](message); return; }
-  messageBox.textContent = message;
+  if (!messageBox) { console.log(`[${type}] ${message}`); return; }
 
+  messageBox.textContent = message;
   messageBox.className = "p-3 rounded-lg text-center font-semibold mb-4";
   if (type === "success") {
     messageBox.classList.add("bg-green-100", "text-green-800");
@@ -123,24 +123,26 @@ window.showMessage = (message, type = "success") => {
  * ========================================================================= */
 function loadLocalData() {
   try {
-    employees          = JSON.parse(localStorage.getItem("employees") || "[]");
-    attendanceRecords  = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
-    punishmentRecords  = JSON.parse(localStorage.getItem("punishmentRecords") || "[]");
+    employees          = JSON.parse(lsGet("employees") || "[]");
+    attendanceRecords  = JSON.parse(lsGet("attendanceRecords") || "[]");
+    punishmentRecords  = JSON.parse(lsGet("punishmentRecords") || "[]");
 
     renderEmployeeDropdowns();
     renderEmployeeList();
     renderDashboard();
   } catch (e) {
     console.error("Gagal memuat data dari LocalStorage:", e);
+    showMessage("Gagal memuat data lokal. Lihat console untuk detail.", "error");
   }
 }
 function saveLocalData() {
   try {
-    localStorage.setItem("employees", JSON.stringify(employees));
-    localStorage.setItem("attendanceRecords", JSON.stringify(attendanceRecords));
-    localStorage.setItem("punishmentRecords", JSON.stringify(punishmentRecords));
+    lsSet("employees", JSON.stringify(employees));
+    lsSet("attendanceRecords", JSON.stringify(attendanceRecords));
+    lsSet("punishmentRecords", JSON.stringify(punishmentRecords));
   } catch (e) {
     console.error("Gagal menyimpan data ke LocalStorage:", e);
+    showMessage("Gagal menyimpan data lokal. Lihat console untuk detail.", "error");
   }
 }
 
@@ -153,24 +155,32 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
   auth = getAuth(app);
 
   onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      userId = user.uid;
-      document.getElementById("user-info")?.textContent = `User ID: ${userId}`;
-    } else {
-      if (initialAuthToken) {
-        try { await signInWithCustomToken(auth, initialAuthToken); }
-        catch { await signInAnonymously(auth); }
+    try {
+      if (user) {
+        userId = user.uid;
+        document.getElementById("user-info").textContent = `User ID: ${userId}`;
       } else {
-        await signInAnonymously(auth);
+        if (initialAuthToken) {
+          try { await signInWithCustomToken(auth, initialAuthToken); }
+          catch { await signInAnonymously(auth); }
+        } else {
+          await signInAnonymously(auth);
+        }
+        userId = auth.currentUser?.uid || crypto.randomUUID();
       }
-      userId = auth.currentUser?.uid || crypto.randomUUID();
+      setupFirestoreListeners();
+    } catch (err) {
+      console.error(err);
+      showMessage("Auth error. Beralih ke mode lokal.", "error");
+      isLocalMode = true;
+      document.getElementById("user-info").textContent = `User ID: LOCAL STORAGE`;
+      loadLocalData();
     }
-    setupFirestoreListeners();
   });
 } else {
   isLocalMode = true;
   console.warn("Mode LOKAL aktif. Data disimpan di LocalStorage.");
-  document.getElementById("user-info")?.textContent = `User ID: LOCAL STORAGE`;
+  document.getElementById("user-info").textContent = `User ID: LOCAL STORAGE`;
   loadLocalData();
 }
 
@@ -215,9 +225,9 @@ window.openEditModal      = (id) => {
   document.getElementById("edit-employee-name").value = emp.name;
   document.getElementById("edit-employee-nid").value  = emp.nid;
   document.getElementById("edit-employee-bidang").value = emp.bidang;
-  const m = document.getElementById("edit-modal"); m.classList.remove("hidden"); m.classList.add("flex");
+  const m = document.getElementById("edit-modal"); m?.classList.remove("hidden"); m?.classList.add("flex");
 };
-window.closeEditModal     = () => { const m = document.getElementById("edit-modal"); m.classList.remove("flex"); m.classList.add("hidden"); };
+window.closeEditModal     = () => { const m = document.getElementById("edit-modal"); m?.classList.remove("flex"); m?.classList.add("hidden"); };
 window.saveEmployeeChanges = async () => {
   const id = document.getElementById("edit-employee-id").value;
   const name   = document.getElementById("edit-employee-name").value.trim();
@@ -466,12 +476,12 @@ function renderApp() {
     activeBtn.classList.remove("text-indigo-200","hover:bg-indigo-700");
   }
 
-  // toggle views
-  document.getElementById("view-employee-db").classList.toggle("hidden", currentView !== "employee_db");
-  document.getElementById("view-input").classList.toggle("hidden", currentView !== "input");
-  document.getElementById("view-dashboard").classList.toggle("hidden", currentView !== "dashboard");
-  document.getElementById("view-review-detail").classList.toggle("hidden", currentView !== "review-detail");
-  document.getElementById("view-punishmen").classList.toggle("hidden", currentView !== "punishmen");
+  // toggle views (pakai optional chaining agar aman bila node belum ada)
+  document.getElementById("view-employee-db")?.classList.toggle("hidden", currentView !== "employee_db");
+  document.getElementById("view-input")?.classList.toggle("hidden", currentView !== "input");
+  document.getElementById("view-dashboard")?.classList.toggle("hidden", currentView !== "dashboard");
+  document.getElementById("view-review-detail")?.classList.toggle("hidden", currentView !== "review-detail");
+  document.getElementById("view-punishmen")?.classList.toggle("hidden", currentView !== "punishmen");
 
   if (currentView === "employee_db") {
     renderEmployeeList();
@@ -480,13 +490,12 @@ function renderApp() {
   } else if (currentView === "dashboard") {
     renderDashboard();
   } else if (currentView === "punishmen") {
-    // pastikan dropdown & tanggal & filter siap
     renderEmployeeDropdowns();
     updatePunishDateAndFilter();
     renderPunishList();
   }
 
-  if (isLocalMode) showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "error");
+  if (isLocalMode) showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "info");
   else document.getElementById("message-box")?.classList.add("hidden");
 }
 
@@ -532,10 +541,8 @@ function renderEmployeeDropdowns() {
   const baseOptions = '<option value="" selected>-- Pilih Karyawan --</option>' +
     employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.nid} - ${emp.bidang})</option>`).join("");
 
-  // dropdown kehadiran
   dropdownIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = baseOptions; });
 
-  // dropdown punishmen (tambah & edit)
   const pAdd = document.getElementById("punish-employee");
   if (pAdd) pAdd.innerHTML = baseOptions;
   const pEdit = document.getElementById("edit-punish-employee");
@@ -659,7 +666,6 @@ window.submitPunishment = async () => {
   });
   saveLocalData();
 
-  // reset form
   document.getElementById("punish-employee").value = "";
   document.getElementById("punish-action").value  = "";
   document.getElementById("punish-desc").value    = "";
@@ -743,9 +749,9 @@ window.openEditPunish = (id) => {
   document.getElementById("edit-punish-desc").value = rec.desc || "";
   document.getElementById("edit-punish-file").value = "";
 
-  const m = document.getElementById("punish-edit-modal"); m.classList.remove("hidden"); m.classList.add("flex");
+  const m = document.getElementById("punish-edit-modal"); m?.classList.remove("hidden"); m?.classList.add("flex");
 };
-window.closeEditPunish = () => { const m = document.getElementById("punish-edit-modal"); m.classList.remove("flex"); m.classList.add("hidden"); };
+window.closeEditPunish = () => { const m = document.getElementById("punish-edit-modal"); m?.classList.remove("flex"); m?.classList.add("hidden"); };
 window.saveEditPunish = async () => {
   const id = document.getElementById("edit-punish-id").value;
   const date   = document.getElementById("edit-punish-date").value;
@@ -783,4 +789,4 @@ window.saveEditPunish = async () => {
 /* =========================================================================
  * RENDER AWAL
  * ========================================================================= */
-window.onload = () => { renderApp(); };
+window.onload = () => { try { renderApp(); } catch(e) { console.error(e); } };
