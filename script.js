@@ -41,6 +41,17 @@ const firebaseConfig =
 const initialAuthToken =
   typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
+// Polyfill ringan untuk crypto.randomUUID (browser lama)
+if (!('crypto' in window) || !('randomUUID' in crypto)) {
+  window.crypto = window.crypto || {};
+  crypto.randomUUID = crypto.randomUUID || (() =>
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    })
+  );
+}
+
 let db, auth, userId = null;
 
 let employees = [];
@@ -92,6 +103,7 @@ window.formatDate = (timestamp) => {
 
 window.showMessage = (message, type = "success") => {
   const messageBox = document.getElementById("message-box");
+  if (!messageBox) { console[type === 'error' ? 'error' : 'log'](message); return; }
   messageBox.textContent = message;
 
   messageBox.className = "p-3 rounded-lg text-center font-semibold mb-4";
@@ -143,7 +155,7 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       userId = user.uid;
-      document.getElementById("user-info").textContent = `User ID: ${userId}`;
+      document.getElementById("user-info")?.textContent = `User ID: ${userId}`;
     } else {
       if (initialAuthToken) {
         try { await signInWithCustomToken(auth, initialAuthToken); }
@@ -158,7 +170,7 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
 } else {
   isLocalMode = true;
   console.warn("Mode LOKAL aktif. Data disimpan di LocalStorage.");
-  document.getElementById("user-info").textContent = `User ID: LOCAL STORAGE`;
+  document.getElementById("user-info")?.textContent = `User ID: LOCAL STORAGE`;
   loadLocalData();
 }
 
@@ -475,7 +487,7 @@ function renderApp() {
   }
 
   if (isLocalMode) showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "error");
-  else document.getElementById("message-box").classList.add("hidden");
+  else document.getElementById("message-box")?.classList.add("hidden");
 }
 
 function renderEmployeeList() {
