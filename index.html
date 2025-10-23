@@ -241,7 +241,15 @@
 
     <!-- ===================== DATA KARYAWAN (DB) ===================== -->
     <section id="view-employee-db" class="hidden">
-      <h1 class="text-3xl font-bold text-gray-900 mb-8">Manajemen Data Karyawan (Database)</h1>
+      <!-- Header + tombol Hapus Semua Data -->
+      <div class="mb-8 flex items-center justify-between gap-4">
+        <h1 class="text-3xl font-bold text-gray-900">Manajemen Data Karyawan (Database)</h1>
+        <button id="btn-delete-all"
+                onclick="deleteAllEmployees()"
+                class="px-4 py-2 rounded-lg font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow disabled:opacity-50 disabled:cursor-not-allowed">
+          Hapus Semua Data
+        </button>
+      </div>
 
       <!-- Tambah Manual -->
       <div class="bg-white p-6 rounded-xl container-shadow mb-8 border-t-4 border-indigo-500">

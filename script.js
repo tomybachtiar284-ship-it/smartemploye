@@ -17,6 +17,7 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
+  getDocs,           // <-- DITAMBAHKAN
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 /* =========================================================================
@@ -84,9 +85,8 @@ window.addEventListener("DOMContentLoaded", () => {
 // Namespace LocalStorage agar data GitHub Pages dan Lokal terpisah
 const STORE_PREFIX = location.hostname.includes("github.io") ? "gh:" : "local:";
 const lsGet = (key) => {
-  // prioritas ke key namespaced; fallback ke legacy (tanpa prefix) supaya data lama tetap terbaca
   let v = localStorage.getItem(STORE_PREFIX + key);
-  if (v == null) v = localStorage.getItem(key);
+  if (v == null) v = localStorage.getItem(key); // fallback legacy
   return v;
 };
 const lsSet = (key, val) => localStorage.setItem(STORE_PREFIX + key, val);
@@ -238,6 +238,66 @@ window.saveEmployeeChanges = async () => {
   if (isLocalMode) saveEmployeeChangesLocal(id, updated); else await saveEmployeeChangesFirebase(id, updated);
   window.closeEditModal();
 };
+
+/* === HAPUS SEMUA DATA (Lokal & Cloud) ================================== */
+window.deleteAllEmployees = async () => {
+  const ok = confirm(
+    "Yakin ingin menghapus SEMUA data karyawan dan seluruh catatan kehadiran?\nTindakan ini tidak bisa dibatalkan."
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById("btn-delete-all");
+  btn?.setAttribute("disabled", "true");
+
+  try {
+    if (isLocalMode) {
+      // Hapus semua data lokal (karyawan, kehadiran, dan punishmen)
+      employees = [];
+      attendanceRecords = [];
+      punishmentRecords = [];
+      saveLocalData();
+
+      renderEmployeeDropdowns();
+      renderEmployeeList();
+      renderDashboard();
+      renderPunishList();
+      showMessage("Semua data lokal berhasil dihapus.");
+    } else {
+      // Cloud: hapus semua dokumen di employees dan attendance_records
+      const base = `artifacts/${appId}/users/${userId}`;
+      const deletedEmp = await deleteAllDocsInCollection(`${base}/employees`);
+      const deletedAtt = await deleteAllDocsInCollection(`${base}/attendance_records`);
+
+      showMessage(`Hapus Cloud sukses. Karyawan: ${deletedEmp}, Catatan kehadiran: ${deletedAtt}.`);
+    }
+  } catch (err) {
+    console.error(err);
+    showMessage("Gagal menghapus semua data: " + (err?.message || err), "error");
+  } finally {
+    btn?.removeAttribute("disabled");
+  }
+};
+
+// helper untuk menghapus semua dokumen dalam 1 koleksi (Cloud)
+async function deleteAllDocsInCollection(path) {
+  const colRef = collection(db, path);
+  const snap = await getDocs(colRef);
+  let count = 0;
+  let batch = writeBatch(db);
+  let ops = 0;
+
+  snap.forEach((d) => {
+    batch.delete(doc(db, path, d.id));
+    ops++; count++;
+    if (ops >= 400) { // batas aman batch Firestore
+      batch.commit();
+      batch = writeBatch(db);
+      ops = 0;
+    }
+  });
+  if (ops > 0) await batch.commit();
+  return count;
+}
 
 window.reviewEmployeeDetails = (id, name) => {
   setView("review-detail");
