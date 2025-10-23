@@ -56,6 +56,28 @@ const ATTENDANCE_TYPES = [
 ];
 
 /* =========================================================================
+ * GLOBAL STATE (di-hoist agar tersedia sebelum loadLocalData/render*)
+ * ========================================================================= */
+let currentView = "dashboard";
+const today = new Date();
+const defaultMonth = today.toISOString().slice(0, 7); // YYYY-MM
+let currentFilterMonth = defaultMonth;
+
+/* NEW: filter bulan Punishmen */
+let currentPunishMonth = defaultMonth;
+
+/* Alias agar onclick='setview("...")' tetap jalan (case-insensitive) */
+window.setview = (...args) => window.setView(...args);
+
+/* Fallback binding menu (kalau inline onclick diblok oleh CSP host) */
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("nav-dashboard")?.addEventListener("click", () => window.setView("dashboard"));
+  document.getElementById("nav-input")?.addEventListener("click", () => window.setView("input"));
+  document.getElementById("nav-punishmen")?.addEventListener("click", () => window.setView("punishmen"));
+  document.getElementById("nav-employee_db")?.addEventListener("click", () => window.setView("employee_db"));
+});
+
+/* =========================================================================
  * UTILITIES
  * ========================================================================= */
 window.formatDate = (timestamp) => {
@@ -70,7 +92,6 @@ window.formatDate = (timestamp) => {
 
 window.showMessage = (message, type = "success") => {
   const messageBox = document.getElementById("message-box");
-  if (!messageBox) return;
   messageBox.textContent = message;
 
   messageBox.className = "p-3 rounded-lg text-center font-semibold mb-4";
@@ -122,8 +143,7 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       userId = user.uid;
-      const info = document.getElementById("user-info");
-      if (info) info.textContent = `User ID: ${userId}`;
+      document.getElementById("user-info").textContent = `User ID: ${userId}`;
     } else {
       if (initialAuthToken) {
         try { await signInWithCustomToken(auth, initialAuthToken); }
@@ -138,8 +158,7 @@ if (firebaseConfig && firebaseConfig.apiKey !== "MOCK_API_KEY_LOCAL_TEST") {
 } else {
   isLocalMode = true;
   console.warn("Mode LOKAL aktif. Data disimpan di LocalStorage.");
-  const info = document.getElementById("user-info");
-  if (info) info.textContent = `User ID: LOCAL STORAGE`;
+  document.getElementById("user-info").textContent = `User ID: LOCAL STORAGE`;
   loadLocalData();
 }
 
@@ -288,7 +307,11 @@ async function submitAttendanceFirebase(type) {
   const selectId = `select-${type.toLowerCase().replace(/\s/g,"_")}`;
   const employeeId = document.getElementById(selectId).value;
   const date = document.getElementById("input-date").value;
-  const time = document.getElementById("input-time").value;
+
+  // normalisasi waktu: izinkan "11.23" -> "11:23"
+  let time = document.getElementById("input-time").value.trim();
+  time = time.replace(".", ":");
+
   if (!employeeId || !date || !time) { showMessage("Lengkapi semua input.", "error"); return; }
 
   const dt = new Date(`${date}T${time}:00`);
@@ -359,7 +382,11 @@ function submitAttendanceLocal(type) {
   const selectId = `select-${type.toLowerCase().replace(/\s/g,"_")}`;
   const employeeId = document.getElementById(selectId).value;
   const date = document.getElementById("input-date").value;
-  const time = document.getElementById("input-time").value;
+
+  // normalisasi waktu: izinkan "11.23" -> "11:23"
+  let time = document.getElementById("input-time").value.trim();
+  time = time.replace(".", ":");
+
   if (!employeeId || !date || !time) { showMessage("Lengkapi semua input.", "error"); return; }
 
   const dt = new Date(`${date}T${time}:00`);
@@ -399,14 +426,6 @@ function saveEmployeeChangesLocal(id, updated) {
 /* =========================================================================
  * RENDER & NAVIGASI
  * ========================================================================= */
-let currentView = "dashboard";
-const today = new Date();
-const defaultMonth = today.toISOString().substring(0, 7);
-let currentFilterMonth = defaultMonth;
-
-/* NEW: filter bulan Punishmen */
-let currentPunishMonth = defaultMonth;
-
 window.setView = (view) => { currentView = view; renderApp(); };
 window.handleMonthChange = (e) => { currentFilterMonth = e.target.value; renderDashboard(); };
 
@@ -456,10 +475,7 @@ function renderApp() {
   }
 
   if (isLocalMode) showMessage("Mode lokal aktif. Data disimpan menggunakan LocalStorage.", "error");
-  else {
-    const box = document.getElementById("message-box");
-    if (box) box.classList.add("hidden");
-  }
+  else document.getElementById("message-box").classList.add("hidden");
 }
 
 function renderEmployeeList() {
