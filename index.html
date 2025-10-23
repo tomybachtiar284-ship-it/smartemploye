@@ -14,14 +14,29 @@
   <!-- SheetJS (untuk impor Excel/CSV) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
+  <!-- (Opsional) Konfigurasi Firebase untuk Cloud mode
+  <script>
+    window.__app_id = "monitoring-prod";
+    window.__firebase_config = JSON.stringify({
+      apiKey: "....",
+      authDomain: "....firebaseapp.com",
+      projectId: "....",
+      storageBucket: "....appspot.com",
+      messagingSenderId: "....",
+      appId: "1:...:web:..."
+    });
+    // window.__initial_auth_token = "JWT_JIKA_DIPERLUKAN";
+  </script>
+  -->
+
   <!-- App JS -->
   <script type="module" src="script.js"></script>
 </head>
 <body class="min-h-screen flex antialiased bg-slate-50">
 
-  <!-- Sidebar: fixed + scroll mandiri -->
+  <!-- Sidebar (posisi diatur via CSS: mobile=sticky, desktop=fixed) -->
   <aside id="sidebar"
-         class="fixed inset-y-0 left-0 w-64 h-screen bg-indigo-800 text-white flex flex-col p-4 shadow-2xl overflow-y-auto z-20">
+         class="w-64 bg-indigo-800 text-white flex flex-col p-4 shadow-2xl overflow-y-auto z-20">
     <div class="text-2xl font-extrabold text-white mb-8 border-b border-indigo-700 pb-4">
       Kehadiran Monitor
     </div>
@@ -45,7 +60,7 @@
         PUNISHMEN
       </button>
 
-      <button id="nav-employee_db" onclick="setView('employee_db')"
+      <button id="nav-employee-db" onclick="setView('employee-db')"
               class="flex items-center p-3 rounded-xl transition duration-150 text-indigo-200 hover:bg-indigo-700">
         <span class="w-5 h-5 mr-3 inline-block">🧑‍💼</span>
         Data Karyawan (DB)
@@ -58,13 +73,12 @@
   </aside>
 
   <!-- Main content -->
-  <main class="ml-64 flex-1 p-8 overflow-y-auto">
-
+  <main class="flex-1 p-8 overflow-y-auto">
     <!-- Global message -->
     <div id="message-box" class="hidden" role="alert"></div>
 
     <!-- ===================== DASHBOARD ===================== -->
-    <section id="view-dashboard" class="hidden">
+    <section id="view-dashboard">
       <div id="dashboard-container" class="bg-white p-6 rounded-xl container-shadow min-h-[400px]">
         <p class="text-center text-gray-500">Memuat data Dashboard...</p>
       </div>
@@ -90,7 +104,6 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-
         <!-- Sakit -->
         <div class="bg-white p-6 rounded-xl container-shadow border-t-4 border-yellow-500">
           <h2 class="text-xl font-semibold text-yellow-800 mb-4">Catat Sakit 🤒</h2>
@@ -291,13 +304,12 @@
     <!-- ===================== REVIEW DETAIL ===================== -->
     <section id="view-review-detail" class="hidden">
       <h1 class="text-3xl font-bold text-gray-900 mb-6" id="review-header">Histori Kehadiran Karyawan</h1>
-      <button onclick="setView('employee_db')"
+      <button onclick="setView('employee-db')"
               class="mb-6 px-4 py-2 text-sm font-semibold text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition">
         &larr; Kembali ke Data Karyawan
       </button>
       <div id="review-detail-container" class="bg-white p-6 rounded-xl container-shadow"></div>
     </section>
-
   </main>
 
   <!-- ===================== EDIT MODAL (EMPLOYEE) ===================== -->
