@@ -761,4 +761,3 @@ window.saveEditPunish = async () => {
  * RENDER AWAL
  * ========================================================================= */
 window.onload = () => { renderApp(); };
-git status
