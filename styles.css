@@ -16,6 +16,8 @@
   border: 1px solid #e5e7eb; /* gray-200 */
   color: #4b5563;            /* gray-600 */
   transition: all .2s ease;
+  min-width: 2.25rem; /* area sentuh minimum */
+  min-height: 2.25rem;
 }
 .icon-button svg { width: 1.1rem; height: 1.1rem; }
 .icon-review:hover {
@@ -79,3 +81,95 @@
 .bg-dinas_luar-total    { background: var(--dinas_luar-bg); }
 .bg-dinas_luar-badge    { background: var(--dinas_luar-badge); color:#3730A3; }
 .border-dinas_luar-500  { border-color: var(--dinas_luar) !important; }
+
+/* ====== Komponen OCR agar responsif ====== */
+#ocr-video {
+  width: 100%;
+  display: block;
+  background: rgba(15, 23, 42, .06); /* slate-900/10 */
+  border-radius: .5rem;
+  object-fit: cover;
+  aspect-ratio: 16/9; /* menjaga proporsi */
+}
+#ocr-canvas { max-width: 100%; height: auto; }
+#ocr-output { width: 100%; box-sizing: border-box; }
+
+/* ====== Nav responsif & perbaikan layout mobile ====== */
+
+/* Default (desktop): pakai layout dari Tailwind (sidebar 16rem) */
+
+/* Tablet & Phone */
+@media (max-width: 1024px) {
+  /* Ubah sidebar jadi topbar */
+  #sidebar{
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: auto;
+    padding: .75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    z-index: 30;
+  }
+  #sidebar > .text-2xl{
+    margin: 0;
+    border: 0;
+    padding: 0;
+    font-size: 1.125rem; /* ~text-lg */
+  }
+  #sidebar nav{
+    flex: 1;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: .5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  #sidebar nav button{
+    white-space: nowrap;
+    padding: .5rem .75rem;
+    border-radius: .75rem;
+  }
+  #sidebar .mt-auto{ display:none; } /* sembunyikan user-info di topbar */
+
+  /* Hilangkan margin-left Tailwind (ml-64) pada <main> */
+  main.ml-64{
+    margin-left: 0 !important;
+    padding-top: calc(4rem + env(safe-area-inset-top)); /* beri ruang di bawah topbar */
+  }
+}
+
+/* Phone kecil */
+@media (max-width: 640px){
+  /* Skala tipografi judul */
+  h1 { font-size: 1.5rem; line-height: 1.2; }
+  h2 { font-size: 1.125rem; }
+
+  /* Sedikit renggangkan shadow agar ringan di mobile */
+  .container-shadow {
+    box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06), 0 2px 8px rgba(2, 6, 23, 0.04);
+  }
+
+  /* Kontrol OCR agar pas di layar kecil */
+  #ocr-progress{ width: 100%; }
+  #ocr-output{ min-height: 10rem; }
+
+  /* Area sentuh tombol ikon */
+  .icon-button{ padding: .45rem; min-width: 2.1rem; min-height: 2.1rem; }
+}
+
+/* ====== Aksesibilitas kecil & polish ====== */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible{
+  outline: 2px solid #6366F1; /* indigo-500 */
+  outline-offset: 2px;
+}
+::-webkit-scrollbar{ height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb{ background: #CBD5E1; border-radius: 999px; }
+::-webkit-scrollbar-track{ background: transparent; }

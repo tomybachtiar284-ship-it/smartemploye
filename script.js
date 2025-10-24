@@ -1,4 +1,6 @@
 // ======= Firebase ESM (akan diabaikan saat mode lokal) =======
+// (Pastikan di index.html sudah ada CDN Tesseract: 
+// <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
   getAuth,
@@ -17,7 +19,7 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
-  getDocs,           // <-- DITAMBAHKAN
+  getDocs,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 /* =========================================================================
@@ -32,7 +34,8 @@ const MOCK_FIREBASE_CONFIG = {
   appId: "1:1234567890:web:mockid",
 };
 
-const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+const appId =
+  typeof __app_id !== "undefined" ? __app_id : "default-app-id";
 const firebaseConfig =
   typeof __firebase_config !== "undefined"
     ? JSON.parse(__firebase_config)
@@ -48,26 +51,29 @@ let employees = [];
 let attendanceRecords = [];
 
 /* ===== NEW: PUNISHMEN storage (selalu Lokal) ===== */
-let punishmentRecords = []; // {id, employeeId, employeeName, employeeNid, employeeBidang, date, monthYear, action, desc, fileName?, fileDataUrl?, createdAt}
+let punishmentRecords = [];
 
+/* ===== OCR state ===== */
+let mediaStream = null;
+let lastOcrText = "";
+
+/* ===== MISC ===== */
 let isLocalMode = false;
 
 const ATTENDANCE_TYPES = [
-  "Sakit","Cuti","Terlambat","ALPA","IZIN","DINAS LUAR",
+  "Sakit", "Cuti", "Terlambat", "ALPA", "IZIN", "DINAS LUAR",
 ];
 
 /* =========================================================================
- * GLOBAL STATE (diletakkan di atas agar tidak “tembak di tempat”)
+ * GLOBAL STATE
  * ========================================================================= */
 let currentView = "dashboard";
 const today = new Date();
 const defaultMonth = today.toISOString().slice(0, 7);
 let currentFilterMonth = defaultMonth;
-
-/* NEW: filter bulan Punishmen */
 let currentPunishMonth = defaultMonth;
 
-/* Alias agar onclick='setview("...")' tetap jalan (case-insensitive) */
+/* Alias agar onclick='setview("...")' tetap jalan */
 window.setview = (...args) => window.setView(...args);
 
 /* Fallback binding menu (kalau inline onclick diblok oleh CSP host) */
@@ -77,8 +83,11 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("nav-punishmen")?.addEventListener("click", () => window.setView("punishmen"));
   document.getElementById("nav-employee_db")?.addEventListener("click", () => window.setView("employee_db"));
 
-  // ⬇️ penting untuk GitHub Pages yang memblok inline onclick
+  // tombol hapus semua
   document.getElementById("btn-delete-all")?.addEventListener("click", () => window.deleteAllEmployees());
+
+  // inisialisasi kontrol OCR bila panel ada di HTML (opsional)
+  initOcrUiBindings();
 });
 
 /* =========================================================================
@@ -547,7 +556,7 @@ function renderApp() {
     activeBtn.classList.remove("text-indigo-200","hover:bg-indigo-700");
   }
 
-  // toggle views (pakai optional chaining agar aman bila node belum ada)
+  // toggle views
   document.getElementById("view-employee-db")?.classList.toggle("hidden", currentView !== "employee_db");
   document.getElementById("view-input")?.classList.toggle("hidden", currentView !== "input");
   document.getElementById("view-dashboard")?.classList.toggle("hidden", currentView !== "dashboard");
@@ -618,6 +627,10 @@ function renderEmployeeDropdowns() {
   if (pAdd) pAdd.innerHTML = baseOptions;
   const pEdit = document.getElementById("edit-punish-employee");
   if (pEdit) pEdit.innerHTML = baseOptions;
+
+  // juga isi daftar pada panel AI jika ada
+  const aiEmp = document.getElementById("ai-employee");
+  if (aiEmp) aiEmp.innerHTML = baseOptions;
 }
 
 /* =========================================================================
@@ -856,6 +869,364 @@ window.saveEditPunish = async () => {
   currentPunishMonth = monthYear; const pm = document.getElementById("punish-filter-month"); if (pm) pm.value = currentPunishMonth;
   renderPunishList();
 };
+
+/* =========================================================================
+ * AI CAMERA/IMAGE OCR (panel opsional)
+ * ========================================================================= */
+function initOcrUiBindings() {
+  const openBtn   = document.getElementById("btn-open-camera");
+  const video     = document.getElementById("ocr-video") || document.getElementById("video-el");
+  const capture   = document.getElementById("btn-capture");
+  const fileInput = document.getElementById("file-ocr");
+  const applyBtn  = document.getElementById("ai-apply-btn");
+
+  if (!openBtn && !fileInput) return; // panel AI tidak ada di HTML
+
+  // kamera
+  openBtn?.addEventListener("click", async () => {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      if (video) {
+        video.srcObject = mediaStream;
+        await video.play();
+        capture?.removeAttribute("disabled");
+      }
+    } catch (e) {
+      showMessage("Tidak bisa membuka kamera: " + e.message, "error");
+    }
+  });
+
+  capture?.addEventListener("click", async () => {
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/png");
+    await runOcr(dataUrl);
+  });
+
+  // file upload
+  fileInput?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    await runOcr(url);
+    URL.revokeObjectURL(url);
+    e.target.value = "";
+  });
+
+  // apply ke data
+  applyBtn?.addEventListener("click", () => {
+    const selType = document.getElementById("ai-type")?.value || "";
+    const empId   = document.getElementById("ai-employee")?.value || "";
+    const dateVal = document.getElementById("ai-date")?.value || today.toISOString().slice(0,10);
+    const timeVal = document.getElementById("ai-time")?.value || new Date().toTimeString().slice(0,5);
+
+    if (!selType || !empId) { showMessage("Pilih tipe & karyawan hasil OCR dulu.", "error"); return; }
+
+    // set tanggal/waktu ke form utama lalu panggil submitAttendance
+    const dateInput = document.getElementById("input-date");
+    const timeInput = document.getElementById("input-time");
+    if (dateInput) dateInput.value = dateVal;
+    if (timeInput) timeInput.value = timeVal;
+
+    // set dropdown sesuai tipe
+    const selectId = `select-${selType.toLowerCase().replace(/\s/g,"_")}`;
+    const sel = document.getElementById(selectId);
+    if (sel) sel.value = empId;
+
+    window.submitAttendance(selType);
+  });
+}
+
+async function runOcr(imageUrl) {
+  if (!window.Tesseract) {
+    showMessage("Tesseract.js belum dimuat. Tambahkan CDN di HTML.", "error");
+    return;
+  }
+  const prog = document.getElementById("ocr-progress");
+  const out  = document.getElementById("ocr-output");
+  try {
+    out && (out.value = "Memindai gambar...\n");
+    const { data } = await Tesseract.recognize(imageUrl, "eng+ind", {
+      logger: m => {
+        if (m.status === "recognizing text" && prog) {
+          prog.value = Math.round((m.progress || 0) * 100);
+        }
+      }
+    });
+    lastOcrText = data?.text || "";
+    if (out) out.value = lastOcrText.trim();
+
+    // coba parse dan isi saran
+    fillAiSuggestionsFromText(lastOcrText);
+  } catch (e) {
+    showMessage("Gagal OCR: " + e.message, "error");
+  } finally {
+    if (prog) prog.value = 0;
+  }
+}
+
+/* ===== Parsing teks laporan -> {type, names[]} ===== */
+function normalize(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseAttendanceFromText(txt) {
+  const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const joined = lines.join("\n");
+
+  // key synonym -> type
+  const keys = [
+    { rx: /(ijin|izin)\s*:/i,           type: "IZIN" },
+    { rx: /sakit\s*:/i,                 type: "Sakit" },
+    { rx: /cuti\s*:/i,                  type: "Cuti" },
+    { rx: /(dl|dinas\s*luar)\s*:/i,     type: "DINAS LUAR" },
+    { rx: /(terlambat|telat)\s*:/i,     type: "Terlambat" },
+    { rx: /(alpa|tanpa\s*keterangan|tk|td)\s*:/i, type: "ALPA" },
+  ];
+
+  const results = [];
+  keys.forEach(k => {
+    const m = joined.match(k.rx);
+    if (!m) return;
+
+    // ambil baris yang mengandung key tsb
+    const keyLine = lines.find(l => k.rx.test(l));
+    if (!keyLine) return;
+
+    // ambil teks setelah ":" dan juga isi di dalam tanda kurung
+    const raw = keyLine.split(":").slice(1).join(":");
+    // contoh: "1( Moh. Fikri)" => ambil isi di dalam kurung kalau ada
+    let inside = [];
+    const paren = raw.match(/\(([^)]+)\)/g);
+    if (paren) {
+      paren.forEach(p => inside.push(p.replace(/[()]/g,"")));
+    }
+
+    let namesPart = inside.length ? inside.join(",") : raw;
+    // pisah dengan koma
+    let names = namesPart.split(/,|;|•|-/).map(s => s.trim()).filter(Boolean);
+
+    // bersihkan angka/prefix qty
+    names = names.map(n => n.replace(/^\d+\s*/,""));
+
+    // buang simbol umum seperti "Moh." -> "Moh" (tetap aman)
+    names = names.map(n => n.replace(/\./g," ").replace(/\s+/g," ").trim()).filter(Boolean);
+
+    if (names.length) results.push({ type: k.type, names });
+  });
+
+  return results; // contoh: [ {type:"Cuti", names:["Moh Fikri"]}, ... ]
+}
+
+/* ===== Mencari karyawan terdekat dari nama ===== */
+function findEmployeeIdByName(name) {
+  const target = normalize(name);
+  if (!target) return null;
+
+  let best = { id: null, score: 0 };
+
+  employees.forEach(e => {
+    const n = normalize(e.name);
+    if (!n) return;
+    // skor sederhana: kecocokan token + includes
+    let score = 0;
+    const tokens = target.split(" ");
+    tokens.forEach(t => { if (n.includes(t)) score += 1; });
+    if (n.startsWith(target)) score += 1;
+    if (target.startsWith(n)) score += 1;
+
+    if (score > best.score) best = { id: e.id, score };
+  });
+
+  // ambang minimum 1 token cocok
+  return best.score > 0 ? best.id : null;
+}
+
+/* ===== Isi saran hasil OCR ke panel ===== */
+function fillAiSuggestionsFromText(text) {
+  const parsed = parseAttendanceFromText(text || "");
+  const selType = document.getElementById("ai-type");
+  const selEmp  = document.getElementById("ai-employee");
+
+  if (!selType || !selEmp) return;
+
+  // default tanggal & waktu
+  const aiDate = document.getElementById("ai-date");
+  const aiTime = document.getElementById("ai-time");
+  if (aiDate && !aiDate.value) aiDate.value = today.toISOString().slice(0,10);
+  if (aiTime && !aiTime.value) aiTime.value = new Date().toTimeString().slice(0,5);
+
+  if (!parsed.length) {
+    showMessage("OCR selesai, tidak menemukan pola kategori/nama. Edit manual di panel OCR.", "info");
+    return;
+  }
+
+  // ambil entri pertama sebagai default saran
+  const first = parsed[0];
+  selType.value = first.type;
+
+  // coba match nama pertama ke database karyawan
+  const empId = findEmployeeIdByName(first.names[0] || "");
+  if (empId) selEmp.value = empId;
+}
+
+/* =========================================================================
+ * FUNGSI GLOBAL UNTUK TOMBOL INLINE DI HTML (OCR CAMERA)
+ * ========================================================================= */
+
+// helper pilih elemen pertama dari daftar id/selector
+function $first(idsOrSelectors) {
+  for (const id of idsOrSelectors) {
+    const el = id.startsWith('#') || id.startsWith('.') ? document.querySelector(id)
+      : document.getElementById(id);
+    if (el) return el;
+  }
+  return null;
+}
+function __getVideoEl() {
+  return $first(['ocr-video', 'video-el', 'video#ocr-video', 'video#video-el', '#view-input video']);
+}
+function __getOutputEl() {
+  return $first(['ocr-output', 'ocr-text']);
+}
+function __getOcrDateEl() {
+  return $first(['ocr-date', 'ai-date', 'ocr-detected-date']);
+}
+
+function tryExtractDate(txt) {
+  if (!txt) return null;
+  // dd/mm/yyyy atau dd-mm-yyyy
+  const m1 = txt.match(/(\b\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m1) {
+    const d = String(m1[1]).padStart(2,'0');
+    const M = String(m1[2]).padStart(2,'0');
+    const y = m1[3];
+    return `${y}-${M}-${d}`;
+  }
+  // “18 Oktober 2025”/“18 Okt 2025”
+  const blnMap = {
+    januari:1, jan:1, feb:2, februari:2, maret:3, mar:3,
+    april:4, apr:4, mei:5, june:6, juni:6, jun:6, juli:7, jul:7,
+    agustus:8, agt:8, agu:8, ags:8,
+    september:9, sep:9, sept:9,
+    oktober:10, okt:10,
+    november:11, nov:11,
+    desember:12, des:12
+  };
+  const norm = (s)=>String(s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const m2 = norm(txt).match(/(\d{1,2})\s+([a-z\.]+)\s+(\d{4})/);
+  if (m2) {
+    const d = String(m2[1]).padStart(2,'0');
+    const mm = blnMap[m2[2].replace(/\./g,'')];
+    if (mm) return `${m2[3]}-${String(mm).padStart(2,'0')}-${d}`;
+  }
+  return null;
+}
+
+// Buka kamera
+async function startOCRCamera() {
+  const video = __getVideoEl();
+  if (!video) { showMessage('Elemen <video id="ocr-video"> tidak ditemukan.', 'error'); return; }
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    video.srcObject = mediaStream;
+    await video.play();
+    showMessage('Kamera aktif.');
+  } catch (e) {
+    showMessage('Tidak bisa membuka kamera: ' + e.message, 'error');
+  }
+}
+// Stop kamera
+function stopOCRCamera() {
+  const video = __getVideoEl();
+  if (video?.pause) video.pause();
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+    mediaStream = null;
+  }
+  if (video) video.srcObject = null;
+  showMessage('Kamera dimatikan.', 'info');
+}
+// Tangkap frame & OCR
+async function captureOCRAndParse() {
+  const video = __getVideoEl();
+  const out = __getOutputEl();
+  if (!video) { showMessage('Video OCR tidak ditemukan.', 'error'); return; }
+  if (!window.Tesseract) { showMessage('Tesseract.js belum dimuat.', 'error'); return; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/png');
+
+  if (typeof runOcr === 'function') {
+    await runOcr(dataUrl);
+    return;
+  }
+  try {
+    out && (out.value = 'Memindai gambar...\n');
+    const { data } = await Tesseract.recognize(dataUrl, 'eng+ind');
+    const text = (data?.text || '').trim();
+    if (out) out.value = text;
+  } catch (e) {
+    showMessage('Gagal OCR: ' + e.message, 'error');
+  }
+}
+// Terapkan hasil OCR ke dashboard
+async function applyOCRParsed() {
+  const out = __getOutputEl();
+  const ocrDateInput = __getOcrDateEl();
+  if (!out) { showMessage('Textarea hasil OCR tidak ditemukan.', 'error'); return; }
+
+  const text = out.value || '';
+  const parsed = (typeof parseAttendanceFromText === 'function')
+    ? parseAttendanceFromText(text)
+    : [];
+
+  let dateISO = ocrDateInput?.value || tryExtractDate(text) || today.toISOString().slice(0,10);
+  if (ocrDateInput && !ocrDateInput.value) ocrDateInput.value = dateISO;
+
+  const mainDate = document.getElementById('input-date');
+  const mainTime = document.getElementById('input-time');
+  if (mainDate) mainDate.value = dateISO;
+  if (mainTime && !mainTime.value) mainTime.value = new Date().toTimeString().slice(0,5);
+
+  if (!parsed.length) {
+    showMessage('Tidak menemukan pola kategori/nama dari teks. Silakan koreksi manual.', 'info');
+    return;
+  }
+
+  for (const group of parsed) {
+    const type = group.type;
+    for (const nm of group.names) {
+      const empId = (typeof findEmployeeIdByName === 'function') ? findEmployeeIdByName(nm) : null;
+      if (!empId) { console.warn('Nama tidak cocok:', nm); continue; }
+      const selectId = `select-${type.toLowerCase().replace(/\s/g,'_')}`;
+      const sel = document.getElementById(selectId);
+      if (sel) sel.value = empId;
+      try { if (typeof window.submitAttendance === 'function') await window.submitAttendance(type); }
+      catch(e){ console.error('Gagal submit OCR untuk', nm, type, e); }
+    }
+  }
+  showMessage('Hasil OCR diterapkan ke dashboard.');
+}
+
+// Ekspos global untuk onclick HTML
+window.startOCRCamera     = startOCRCamera;
+window.stopOCRCamera      = stopOCRCamera;
+window.captureOCRAndParse = captureOCRAndParse;
+window.applyOCRParsed     = applyOCRParsed;
 
 /* =========================================================================
  * RENDER AWAL
