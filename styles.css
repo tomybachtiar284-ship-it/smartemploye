@@ -94,13 +94,31 @@
 #ocr-canvas { max-width: 100%; height: auto; }
 #ocr-output { width: 100%; box-sizing: border-box; }
 
-/* ====== Nav responsif & perbaikan layout mobile ====== */
+/* ====== Aksesibilitas kecil & polish ====== */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible{
+  outline: 2px solid #6366F1; /* indigo-500 */
+  outline-offset: 2px;
+}
 
+/* Hindari zoom otomatis di iOS saat fokus input */
+input, select, textarea { font-size: 16px; }
+
+/* Scrollbar halus (browser yang mendukung) */
+::-webkit-scrollbar{ height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb{ background: #CBD5E1; border-radius: 999px; }
+::-webkit-scrollbar-track{ background: transparent; }
+
+/* ====== Nav responsif & perbaikan layout mobile ====== */
 /* Default (desktop): pakai layout dari Tailwind (sidebar 16rem) */
 
 /* Tablet & Phone */
 @media (max-width: 1024px) {
-  /* Ubah sidebar jadi topbar */
+  /* Jadikan sidebar sebagai topbar ringan */
   #sidebar{
     position: fixed;
     inset: 0 auto auto 0;
@@ -139,37 +157,22 @@
     margin-left: 0 !important;
     padding-top: calc(4rem + env(safe-area-inset-top)); /* beri ruang di bawah topbar */
   }
+
+  /* Ringankan bayangan di mobile */
+  .container-shadow {
+    box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06), 0 2px 8px rgba(2, 6, 23, 0.04);
+  }
 }
 
 /* Phone kecil */
 @media (max-width: 640px){
-  /* Skala tipografi judul */
+  /* Skala tipografi judul agar tidak kepanjangan */
   h1 { font-size: 1.5rem; line-height: 1.2; }
   h2 { font-size: 1.125rem; }
 
-  /* Sedikit renggangkan shadow agar ringan di mobile */
-  .container-shadow {
-    box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06), 0 2px 8px rgba(2, 6, 23, 0.04);
-  }
-
   /* Kontrol OCR agar pas di layar kecil */
-  #ocr-progress{ width: 100%; }
   #ocr-output{ min-height: 10rem; }
 
   /* Area sentuh tombol ikon */
   .icon-button{ padding: .45rem; min-width: 2.1rem; min-height: 2.1rem; }
 }
-
-/* ====== Aksesibilitas kecil & polish ====== */
-button:focus-visible,
-[role="button"]:focus-visible,
-a:focus-visible,
-select:focus-visible,
-input:focus-visible,
-textarea:focus-visible{
-  outline: 2px solid #6366F1; /* indigo-500 */
-  outline-offset: 2px;
-}
-::-webkit-scrollbar{ height: 8px; width: 8px; }
-::-webkit-scrollbar-thumb{ background: #CBD5E1; border-radius: 999px; }
-::-webkit-scrollbar-track{ background: transparent; }
